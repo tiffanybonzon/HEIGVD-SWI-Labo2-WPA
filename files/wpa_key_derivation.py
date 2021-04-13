@@ -17,11 +17,13 @@ __email__ 		= "abraham.rubinstein@heig-vd.ch"
 __status__ 		= "Prototype"
 
 from scapy.all import *
+from scapy.contrib.wpa_eapol import WPA_key
 from binascii import a2b_hex, b2a_hex
 from pbkdf2 import *
 from numpy import array_split
 from numpy import array
 import hmac, hashlib
+
 
 def customPRF512(key,A,B):
     """
@@ -44,31 +46,38 @@ passPhrase  = "actuelle"
 A           = "Pairwise key expansion" #this string is used in the pseudo-random function
 
 # Below here are the seven values that we're about to dynamicaly extract from the capture file
-handshake = []
 
+# get info from first association request (ssid, APMac, ClientMAC)
 for p in wpa:
     if p.haslayer(Dot11): 
-        # SSID and the MAC of both the client and the AP
         if p.type == 0 and p.subtype == 0 :
             ssid        = p.info.decode('ascii')
             APmac       = a2b_hex(p.addr1.replace(':', ''))
             Clientmac   = a2b_hex(p.addr2.replace(':', ''))
+            break
+
+# get handshake messages
+handshake = []
+for p in wpa:
+    #AP to STA (handshake#1 and handshake#3)
     if p.haslayer(WPA_key):
-        print("New packet was added !")
+        handshake.append(p)
+    #STA to AP (handshake#2 and handshake#4)
+    if p.type == 0 and p.subtype == 0 and p.proto == 1:
         handshake.append(p)
 
-print("The length is : " + len(handshake))
 
 if len(handshake) != 4:
     print("The .cap is missing some handshake parts ! :(")
 else:
     # Authenticator and Supplicant Nonces 
     ANonce = handshake[0].nonce
-    SNonce = handshake[1].nonce
+    #FROM: https://stackoverflow.com/questions/27172789/how-to-extract-raw-of-tcp-packet-using-scapy
+    SNonce = raw(handshake[1])[65:(65+32)]
 
     # This is the MIC contained in the 4th frame of the 4-way handshake
     # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-    mic_to_test = handshake[3].wpa_key_mic
+    mic_to_test = b2a_hex(raw(handshake[3])[129:-2])
     handshake[3].wpa_key_mic = 0x00 # Set to 0 based on the "Quelques éléments à considérer" :D
 
     data = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
