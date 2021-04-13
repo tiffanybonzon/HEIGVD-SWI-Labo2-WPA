@@ -54,52 +54,54 @@ for p in wpa:
             APmac       = a2b_hex(p.addr1.replace(':', ''))
             Clientmac   = a2b_hex(p.addr2.replace(':', ''))
     elif p.haslayer(WPA_key):
+        print("New packet was added !")
         handshake.append(p)
 
-    if len(handshake) != 4:
-        print("The .cap is missing some handshake parts ! :(")
-    else:
-        # Authenticator and Supplicant Nonces 
-        ANonce = handshake[0].nonce
-        SNonce = handshake[1].nonce
+print("The length is : " + len(handshake))
 
-        # This is the MIC contained in the 4th frame of the 4-way handshake
-        # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-        mic_to_test = handshake[3].wpa_key_mic
-        handshake[3].wpa_key_mic = 0x00 # Set to 0 based on the "Quelques éléments à considérer" :D
+if len(handshake) != 4:
+    print("The .cap is missing some handshake parts ! :(")
+else:
+    # Authenticator and Supplicant Nonces 
+    ANonce = handshake[0].nonce
+    SNonce = handshake[1].nonce
 
-        data = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+    # This is the MIC contained in the 4th frame of the 4-way handshake
+    # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
+    mic_to_test = handshake[3].wpa_key_mic
+    handshake[3].wpa_key_mic = 0x00 # Set to 0 based on the "Quelques éléments à considérer" :D
 
-# Nothing to change regarding how B is computed -- No changes overall below
-B = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
+    data = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 
-print ("\n\nValues used to derivate keys")
-print ("============================")
-print ("Passphrase: ",passPhrase,"\n")
-print ("SSID: ",ssid,"\n")
-print ("AP Mac: ",b2a_hex(APmac),"\n")
-print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
-print ("AP Nonce: ",b2a_hex(ANonce),"\n")
-print ("Client Nonce: ",b2a_hex(SNonce),"\n")
+    # Nothing to change regarding how B is computed -- No changes overall below
+    B = min(APmac,Clientmac)+max(APmac,Clientmac)+min(ANonce,SNonce)+max(ANonce,SNonce) #used in pseudo-random function
 
-#calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
-passPhrase = str.encode(passPhrase)
-ssid = str.encode(ssid)
-pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
+    print ("\n\nValues used to derivate keys")
+    print ("============================")
+    print ("Passphrase: ",passPhrase,"\n")
+    print ("SSID: ",ssid,"\n")
+    print ("AP Mac: ",b2a_hex(APmac),"\n")
+    print ("CLient Mac: ",b2a_hex(Clientmac),"\n")
+    print ("AP Nonce: ",b2a_hex(ANonce),"\n")
+    print ("Client Nonce: ",b2a_hex(SNonce),"\n")
 
-#expand pmk to obtain PTK
-ptk = customPRF512(pmk,str.encode(A),B)
+    #calculate 4096 rounds to obtain the 256 bit (32 oct) PMK
+    passPhrase = str.encode(passPhrase)
+    ssid = str.encode(ssid)
+    pmk = pbkdf2(hashlib.sha1,passPhrase, ssid, 4096, 32)
 
-#calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
-mic = hmac.new(ptk[0:16],data,hashlib.sha1)
+    #expand pmk to obtain PTK
+    ptk = customPRF512(pmk,str.encode(A),B)
 
+    #calculate MIC over EAPOL payload (Michael)- The ptk is, in fact, KCK|KEK|TK|MICK
+    mic = hmac.new(ptk[0:16],data,hashlib.sha1)
 
-print ("\nResults of the key expansion")
-print ("=============================")
-print ("PMK:\t\t",pmk.hex(),"\n")
-print ("PTK:\t\t",ptk.hex(),"\n")
-print ("KCK:\t\t",ptk[0:16].hex(),"\n")
-print ("KEK:\t\t",ptk[16:32].hex(),"\n")
-print ("TK:\t\t",ptk[32:48].hex(),"\n")
-print ("MICK:\t\t",ptk[48:64].hex(),"\n")
-print ("MIC:\t\t",mic.hexdigest(),"\n")
+    print ("\nResults of the key expansion")
+    print ("=============================")
+    print ("PMK:\t\t",pmk.hex(),"\n")
+    print ("PTK:\t\t",ptk.hex(),"\n")
+    print ("KCK:\t\t",ptk[0:16].hex(),"\n")
+    print ("KEK:\t\t",ptk[16:32].hex(),"\n")
+    print ("TK:\t\t",ptk[32:48].hex(),"\n")
+    print ("MICK:\t\t",ptk[48:64].hex(),"\n")
+    print ("MIC:\t\t",mic.hexdigest(),"\n")
