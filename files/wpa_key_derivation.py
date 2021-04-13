@@ -44,16 +44,16 @@ passPhrase  = "actuelle"
 A           = "Pairwise key expansion" #this string is used in the pseudo-random function
 
 # Below here are the seven values that we're about to dynamicaly extract from the capture file
-# Ref : https://gist.github.com/securitytube/5291959 
+handshake = []
+
 for p in wpa:
-    handshake = []
     if p.haslayer(Dot11): 
         # SSID and the MAC of both the client and the AP
         if p.type == 0 and p.subtype == 0 :
             ssid        = p.info.decode('ascii')
             APmac       = a2b_hex(p.addr1.replace(':', ''))
             Clientmac   = a2b_hex(p.addr2.replace(':', ''))
-    elif p.haslayer(WPA_key):
+    if p.haslayer(WPA_key):
         print("New packet was added !")
         handshake.append(p)
 
