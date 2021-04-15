@@ -69,6 +69,7 @@ Utilisant le script [wpa\_key\_derivation.py](files/wpa_key_derivation.py) comme
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
 Voici l'exécution de notre script
+
 ![](img/scaircrack.png)
 
 
