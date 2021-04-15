@@ -77,6 +77,9 @@ def getNouncesAndMic(handshake):
     
     return fromPacket_ANounce, fromPacket_SNounce, fromPacket_mic
 
+def getDataFromPacket(packet):
+    return raw(packet)[48:129]
+
 
 def main():
     # Important parameters for key derivation - Those two aren't picked from the .cap file
@@ -94,9 +97,8 @@ def main():
 
     
     # When attacking WPA, we would compare it to our own MIC calculated using passphrases from a dictionary
-    handshake[3].wpa_key_mic = 0x00 # Set to 0 based on the "Quelques éléments à considérer" :D
-
-    data = a2b_hex("0103005f02030a0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+    # End Set to 0 based on the "Quelques éléments à considérer" :D
+    data = getDataFromPacket(handshake[3]) + b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
     print ("\n\nValues used to derivate keys")
     print ("============================")
