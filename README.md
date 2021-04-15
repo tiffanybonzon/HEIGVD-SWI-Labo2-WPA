@@ -68,6 +68,9 @@ Utilisant le script [wpa\_key\_derivation.py](files/wpa_key_derivation.py) comme
    - Identiques &rarr; La passphrase utilisée est correcte
    - Différents &rarr; Essayer avec une nouvelle passphrase
 
+Voici l'exécution de notre script
+![](img/scaircrack.png)
+
 
 ### 3. Scairodump (Challenge optionnel pour un bonus)
 
